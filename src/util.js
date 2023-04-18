@@ -1,8 +1,6 @@
 /**
  * Utility methods
  */
-
-const dns = require('dns').promises;
 const { readCertificateInfo, splitPemChain } = require('./crypto');
 const { log } = require('./logger');
 
@@ -185,17 +183,20 @@ function formatResponseError(resp) {
  * @returns {Promise<string>} Root domain name
  */
 
-async function resolveDomainBySoaRecord(recordName) {
+async function resolveDomainBySoaRecord(name) {
+    console.assert(name.endsWith('.'), 'A Domain Name always needs to end with . as that is the DNS root!!');
+    console.assert(name.endsWith('.'), `${name} !== "${name}." // Fix ME!`);
     try {
-        await dns.resolveSoa(recordName);
-        log(`Found SOA record, considering domain to be: ${recordName}`);
-        return recordName;
+        (await (await fetch('https://dns.google/resolve?name=${name}&type=SOA').json()).Answer[0].data.split(' ')[0];
+        //await dns.resolveSoa(recordName);
+        log(`Found SOA record, considering Domain name to be: ${name}`);
+        return name;
     }
     catch (e) {
-        log(`Unable to locate SOA record for name: ${recordName}`);
-        const parentRecordName = recordName.split('.').slice(1).join('.');
+        log(`Unable to locate SOA record for name: ${name}`);
+        const parentRecordName = name.slice(name.indexOf('.')+1);
 
-        if (!parentRecordName.includes('.')) {
+        if (name.length === parentRecordName.length) {
             throw new Error('Unable to resolve domain by SOA record');
         }
 
