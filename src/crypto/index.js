@@ -3,13 +3,10 @@
  *
  * @namespace crypto
  */
-
-const net = require('net');
-const { promisify } = require('util');
-const crypto = require('crypto');
+const { subtle } = globalThis.crypto || await import('node:crypto');
 const jsrsasign = require('jsrsasign');
 
-const generateKeyPair = promisify(crypto.generateKeyPair);
+const generateKeyPair = subtle.generateKey;
 
 
 /**
@@ -402,7 +399,9 @@ function createCsrSubject(input) {
 
 function formatCsrAltNames(altNames) {
     return altNames.map((value) => {
-        const key = net.isIP(value) ? 'ip' : 'dns';
+        // returns false or 4 or 6
+        const isIP = (ip) => (ip.split('.').length === 4) && 4 || (ip.split(':').length > 2 && ip.split(':').length < 7) && 6;
+        const key = isIP(value) ? 'ip' : 'dns';
         return { [key]: value };
     });
 }
